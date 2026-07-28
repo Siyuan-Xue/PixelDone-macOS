@@ -3,6 +3,7 @@
 DerivedData/
 build/
 dist/
+*.xcodeproj/
 *.xcuserstate
 xcuserdata/
 *.xccheckout

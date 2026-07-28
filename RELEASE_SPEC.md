@@ -14,7 +14,7 @@
 
 The macOS app is not complete until a Mac records:
 
-- successful Xcode 26 build and `.app` launch through `script/build_and_run.sh`;
+- successful Xcode 26.6 build and `.app` launch through `script/build_and_run.sh`;
 - shared and app test results;
 - evidence for every required macOS feature row;
 - main-window, Settings, Commands, MenuBarExtra, keyboard, pointer, Light, Dark, Arabic RTL, Chinese, accessibility, offline, conflict, attachment, and reminder states;

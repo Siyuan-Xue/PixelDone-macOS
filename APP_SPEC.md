@@ -4,7 +4,7 @@
 
 - Product name: PixelDone
 - Bundle identifier: `com.milesxue.pixeldone.macos`
-- Deployment: macOS 26.0
+- Deployment: macOS 26.5
 - Interface: SwiftUI with narrow AppKit interop
 - Persistence: SwiftData
 - Shared package: sibling `../PixelDoneAppleCore`

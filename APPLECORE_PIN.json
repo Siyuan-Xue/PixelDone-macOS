@@ -1,7 +1,7 @@
 {
   "repository": "https://github.com/Siyuan-Xue/PixelDoneAppleCore.git",
-  "foundationTag": "v0.1.0-foundation",
-  "commit": "9eded6af7c4dfc8372f77a7a2e6bd7965a0d0938",
+  "foundationTag": "main",
+  "commit": "1efb78185041c53d1ffe3c605bf46d9cae518675",
   "manifestVersion": 1,
   "requiredProducts": [
     "PixelDoneDomain",

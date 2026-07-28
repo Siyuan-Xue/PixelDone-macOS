@@ -2,8 +2,8 @@
 
 ## Prerequisites
 
-- macOS host with Xcode 26 selected.
-- XcodeGen 2.45.4.
+- macOS host with Xcode 26.6 selected.
+- XcodeGen 2.46.0.
 - `PixelDoneAppleCore` cloned beside this repository at `../PixelDoneAppleCore`.
 
 Confirm the pinned AppleCore foundation in `APPLECORE_PIN.json`.

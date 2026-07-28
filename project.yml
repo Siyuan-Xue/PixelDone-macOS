@@ -1,9 +1,9 @@
 name: PixelDone-macOS
 
 options:
-  minimumXcodeGenVersion: 2.45.4
+  minimumXcodeGenVersion: 2.46.0
   deploymentTarget:
-    macOS: "26.0"
+    macOS: "26.5"
   createIntermediateGroups: true
 
 packages:
@@ -14,13 +14,28 @@ targets:
   PixelDone:
     type: application
     platform: macOS
-    deploymentTarget: "26.0"
+    deploymentTarget: "26.5"
     sources:
       - path: PixelDoneApp
     info:
       path: Config/Info.plist
+      properties:
+        CFBundleDisplayName: PixelDone
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        LSMinimumSystemVersion: $(MACOSX_DEPLOYMENT_TARGET)
+        NSAppTransportSecurity:
+          NSAllowsArbitraryLoads: true
+        NSHumanReadableCopyright: CODEX & XUE
+        NSPrincipalClass: NSApplication
+        PixelDoneSupabasePublishableKey: $(PIXELDONE_SUPABASE_PUBLISHABLE_KEY)
+        PixelDoneSupabaseURL: $(PIXELDONE_SUPABASE_URL)
     entitlements:
       path: Config/PixelDone.entitlements
+      properties:
+        com.apple.security.app-sandbox: true
+        com.apple.security.files.user-selected.read-write: true
+        com.apple.security.network.client: true
     configFiles:
       Debug: Config/Base.xcconfig
       Release: Config/Base.xcconfig
@@ -30,6 +45,7 @@ targets:
         PRODUCT_NAME: PixelDone
         GENERATE_INFOPLIST_FILE: NO
         ENABLE_USER_SCRIPT_SANDBOXING: YES
+        SWIFT_DEFAULT_ACTOR_ISOLATION: MainActor
     dependencies:
       - package: PixelDoneAppleCore
         product: PixelDoneDomain
@@ -37,6 +53,32 @@ targets:
         product: PixelDoneSyncContract
       - package: PixelDoneAppleCore
         product: PixelDoneDesignFoundation
+
+  PixelDoneTests:
+    type: bundle.unit-test
+    platform: macOS
+    deploymentTarget: "26.5"
+    sources:
+      - path: PixelDoneTests
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        SWIFT_DEFAULT_ACTOR_ISOLATION: MainActor
+    dependencies:
+      - target: PixelDone
+
+  PixelDoneUITests:
+    type: bundle.ui-testing
+    platform: macOS
+    deploymentTarget: "26.5"
+    sources:
+      - path: PixelDoneUITests
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        SWIFT_DEFAULT_ACTOR_ISOLATION: MainActor
+    dependencies:
+      - target: PixelDone
 
 schemes:
   PixelDone-macOS:
@@ -47,3 +89,8 @@ schemes:
       config: Debug
     archive:
       config: Release
+    test:
+      config: Debug
+      targets:
+        - PixelDoneTests
+        - PixelDoneUITests

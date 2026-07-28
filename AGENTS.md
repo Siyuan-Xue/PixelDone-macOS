@@ -17,7 +17,7 @@ If the pinned AppleCore checkout is unavailable, stop rather than guessing produ
 ## Rules
 
 - All durable project rules and documentation must be written in English.
-- The deployment target is macOS 26.0.
+- The deployment target is macOS 26.5.
 - Use SwiftUI scenes, SwiftData, Observation, UserNotifications, Keychain, and native URLSession APIs.
 - AppKit interop must remain narrow and documented.
 - The app is a regular Dock application with a main window, Settings, Commands, and a `MenuBarExtra`.
@@ -37,4 +37,4 @@ If the pinned AppleCore checkout is unavailable, stop rather than guessing produ
 
 - Project generation, compilation, testing, signing, and launch occur only on macOS.
 - Windows-created Swift, scripts, and XcodeGen files are unverified scaffolding until the first Mac build.
-- Do not claim build or runtime success without Xcode 26 evidence.
+- Do not claim build or runtime success without Xcode 26.6 evidence.

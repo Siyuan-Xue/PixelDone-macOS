@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 if ! command -v xcodegen >/dev/null 2>&1; then
-  echo "XcodeGen 2.45.4 is required on macOS." >&2
+  echo "XcodeGen 2.46.0 is required on macOS." >&2
   exit 1
 fi
 
