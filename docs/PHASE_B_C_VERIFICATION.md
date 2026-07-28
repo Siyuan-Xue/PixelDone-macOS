@@ -13,8 +13,9 @@ Verified on 2026-07-28 with Xcode 26.6 (17F113), Swift 6.3.3, XcodeGen
 | MAC-STORAGE-01 | Authenticated Storage upload/download/delete, 10 MiB cap, 4096px JPEG, SHA-256 | Native image normalization test | Fixture verified |
 | MAC-CONFLICT-01 | Review sheet, Keep Cloud, Keep Local, tombstone cloning | Store and contract tests; UI build | Fixture verified |
 | MAC-NOTIFY-01 | Standard reminders, XHIGH Time Sensitive, Stop and Snooze 10 min | Native macOS build | Permission/device acceptance pending |
-| MAC-L10N-01 | English, Simplified Chinese, Arabic RTL, French, Russian, Spanish, plus System selection | 275-entry String Catalog compiles | Build verified |
+| MAC-L10N-01 | English, Simplified Chinese, Arabic RTL, French, Russian, Spanish, plus System selection | 275 imported product entries and 10 Apple shell entries compile | Build verified |
 | MAC-UI-01 | WindowGroup, Settings, Commands, MenuBarExtra, Sidebar, toolbar, Inspector, Liquid Glass Dock | Build script, XCTest, Accessibility inspection | Verified |
+| MAC-ICON-01 | Native four-layer Icon Composer app icon using the PixelDone palette and mark | `actool` generated `AppIcon.icns` from `AppIcon.icon`; rendered output visually inspected | Verified |
 
 `Fixture verified` means the client behavior is tested without external
 credentials. It does not claim that a live Supabase deployment accepted the

@@ -114,7 +114,9 @@ struct PixelDoneSettingsView: View {
             }
 
             Form {
-                LabeledContent("cloud", value: store.cloud.status.label)
+                LabeledContent("cloud") {
+                    Text(cloudStatusName(store.cloud.status))
+                }
                 LabeledContent("cloud_version", value: "Supabase 3.2")
                 CloudAccountView(store: store)
 
@@ -131,6 +133,7 @@ struct PixelDoneSettingsView: View {
         }
         .padding(16)
         .frame(width: 620, height: 440)
+        .id(store.snapshot.settings.languageMode)
         .task {
             await store.load()
         }
@@ -156,6 +159,21 @@ struct PixelDoneSettingsView: View {
         case .deleteDone: "clean_done"
         case .batchDelete: "quick_delete"
         case .exportMarkdown: "export_markdown"
+        }
+    }
+
+    private func cloudStatusName(
+        _ status: CloudStatus
+    ) -> LocalizedStringKey {
+        switch status {
+        case .localOnly: "local_only"
+        case .signedOut: "signed_out"
+        case .idle: "synced"
+        case .syncing: "syncing"
+        case .retrying: "pending"
+        case .authenticationExpired: "sync_sign_in_required"
+        case .updateRequired: "server_update_required"
+        case .storageError: "error"
         }
     }
 }

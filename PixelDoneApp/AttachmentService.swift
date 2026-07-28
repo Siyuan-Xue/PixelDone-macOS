@@ -29,6 +29,16 @@ enum AttachmentError: LocalizedError {
 }
 
 actor PixelDoneAttachmentService {
+    func previewImage(from data: Data) -> CGImage? {
+        guard let source = CGImageSourceCreateWithData(
+            data as CFData,
+            nil
+        ) else {
+            return nil
+        }
+        return CGImageSourceCreateImageAtIndex(source, 0, nil)
+    }
+
     func normalize(_ input: Data) throws -> NormalizedAttachment {
         guard let source = CGImageSourceCreateWithData(input as CFData, nil),
               let image = CGImageSourceCreateThumbnailAtIndex(

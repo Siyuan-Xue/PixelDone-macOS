@@ -17,7 +17,7 @@ struct PixelDoneRootView: View {
         } detail: {
             Group {
                 if !store.isLoaded {
-                    ProgressView("Opening PixelDone…")
+                    ProgressView("shell_opening_app")
                         .controlSize(.large)
                 } else if store.selectedChecklistID
                             == PixelDoneProductBaseline.settingsChecklistID {
@@ -111,7 +111,7 @@ struct PixelDoneRootView: View {
                 }
             )
         ) {
-            Button("OK") {
+            Button("shell_ok") {
                 store.notice = nil
                 store.errorMessage = nil
             }
@@ -122,7 +122,7 @@ struct PixelDoneRootView: View {
 
     private var sidebar: some View {
         List(selection: selection) {
-            Section("Workspace") {
+            Section("shell_workspace") {
                 sidebarRow(
                     id: PixelDoneProductBaseline.defaultChecklistID,
                     title: "MAIN",
@@ -130,7 +130,7 @@ struct PixelDoneRootView: View {
                 )
             }
 
-            Section("Checklists") {
+            Section("shell_checklists") {
                 ForEach(store.ordinaryChecklists) { checklist in
                     sidebarRow(
                         id: checklist.id,
@@ -153,7 +153,7 @@ struct PixelDoneRootView: View {
                 }
             }
 
-            Section("System") {
+            Section("shell_system") {
                 sidebarRow(
                     id: PixelDoneProductBaseline.trashChecklistID,
                     title: "TRASH",
@@ -166,7 +166,7 @@ struct PixelDoneRootView: View {
                 )
             }
 
-            Section("Connection") {
+            Section("shell_connection") {
                 LabeledContent {
                     Text(syncMode)
                         .foregroundStyle(.secondary)
@@ -208,8 +208,23 @@ struct PixelDoneRootView: View {
             )
     }
 
-    private var syncMode: String {
-        store.cloud.status.label
+    private var syncMode: LocalizedStringKey {
+        cloudStatusName(store.cloud.status)
+    }
+
+    private func cloudStatusName(
+        _ status: CloudStatus
+    ) -> LocalizedStringKey {
+        switch status {
+        case .localOnly: "local_only"
+        case .signedOut: "signed_out"
+        case .idle: "synced"
+        case .syncing: "syncing"
+        case .retrying: "pending"
+        case .authenticationExpired: "sync_sign_in_required"
+        case .updateRequired: "server_update_required"
+        case .storageError: "error"
+        }
     }
 }
 

@@ -3,6 +3,7 @@ import SwiftUI
 
 struct TodoWorkspaceView: View {
     @Bindable var store: PixelDoneStore
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         Group {
@@ -33,8 +34,12 @@ struct TodoWorkspaceView: View {
                     }
                     .onChange(of: store.highlightedTodoID) { _, id in
                         guard let id else { return }
-                        withAnimation(.snappy) {
+                        if reduceMotion {
                             proxy.scrollTo(id, anchor: .center)
+                        } else {
+                            withAnimation(.snappy) {
+                                proxy.scrollTo(id, anchor: .center)
+                            }
                         }
                     }
                 }
@@ -195,7 +200,7 @@ private struct TodoRowView: View {
                 }
                 .menuStyle(.borderlessButton)
             } else {
-                Button("Inspect", systemImage: "sidebar.right") {
+                Button("shell_inspect", systemImage: "sidebar.right") {
                     store.inspectedTodoID = todo.id
                 }
                 .labelStyle(.iconOnly)

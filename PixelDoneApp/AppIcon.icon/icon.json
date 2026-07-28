@@ -1,0 +1,43 @@
+{
+  "fill" : {
+    "solid" : "extended-srgb:0.98039,0.97647,0.96078,1.00000"
+  },
+  "groups" : [
+    {
+      "layers" : [
+        {
+          "image-name" : "03-task-details.svg",
+          "name" : "03-task-details"
+        },
+        {
+          "image-name" : "02-clay-accent.svg",
+          "name" : "02-clay-accent"
+        },
+        {
+          "image-name" : "01-clipboard.svg",
+          "name" : "01-clipboard"
+        },
+        {
+          "glass" : false,
+          "image-name" : "00-ivory-background.svg",
+          "name" : "00-ivory-background"
+        }
+      ],
+      "name" : "PixelDone",
+      "shadow" : {
+        "kind" : "neutral",
+        "opacity" : 0.5
+      },
+      "translucency" : {
+        "enabled" : true,
+        "value" : 0.5
+      }
+    }
+  ],
+  "supported-platforms" : {
+    "circles" : [
+      "watchOS"
+    ],
+    "squares" : "shared"
+  }
+}

@@ -15,13 +15,13 @@ struct PixelDoneMenuBarView: View {
             store.editorPresentation = .create
         }
 
-        Button("Open PixelDone") {
+        Button("shell_open_app") {
             openMainWindow()
         }
 
         Divider()
 
-        Button("Quit PixelDone") {
+        Button("shell_quit_app") {
             NSApplication.shared.terminate(nil)
         }
         .keyboardShortcut("q")

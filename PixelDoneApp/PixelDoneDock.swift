@@ -51,7 +51,7 @@ struct PixelDoneDock: View {
             ShareLink(
                 item: markdown,
                 subject: Text(store.selectedChecklist?.name ?? "PixelDone"),
-                message: Text("Exported from PixelDone")
+                message: Text("shell_exported_from")
             ) {
                 dockLabel(action)
             }

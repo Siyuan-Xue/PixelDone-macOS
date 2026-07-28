@@ -10,7 +10,7 @@ struct TodoEditorView: View {
     @State private var draft: TodoDraft
     @State private var isImportingAttachment = false
     @State private var attachmentMessage: String?
-    @State private var existingAttachmentData: Data?
+    @State private var attachmentPreview: CGImage?
     private let attachmentService = PixelDoneAttachmentService()
 
     init(store: PixelDoneStore, presentation: EditorPresentation) {
@@ -63,7 +63,7 @@ struct TodoEditorView: View {
                 }
 
                 Section {
-                    if let image = attachmentImage {
+                    if let image = attachmentPreview {
                         Image(
                             decorative: image,
                             scale: 1,
@@ -91,7 +91,7 @@ struct TodoEditorView: View {
                         ) {
                             draft.attachment = nil
                             draft.removeAttachment = true
-                            existingAttachmentData = nil
+                            attachmentPreview = nil
                             attachmentMessage =
                                 "Image will be removed on save."
                         }
@@ -147,9 +147,12 @@ struct TodoEditorView: View {
                         }
                     }
                     let data = try Data(contentsOf: selectedURL)
-                    draft.attachment = try await attachmentService.normalize(
-                        data
-                    )
+                    let normalized = try await attachmentService.normalize(data)
+                    draft.attachment = normalized
+                    attachmentPreview =
+                        await attachmentService.previewImage(
+                            from: normalized.data
+                        )
                     draft.removeAttachment = false
                     attachmentMessage =
                         "Image ready — normalized as JPEG."
@@ -160,7 +163,12 @@ struct TodoEditorView: View {
         }
         .task(id: existingAttachmentID) {
             guard case let .edit(todo) = presentation else { return }
-            existingAttachmentData = await store.attachmentData(for: todo)
+            guard let data = await store.attachmentData(for: todo) else {
+                return
+            }
+            attachmentPreview = await attachmentService.previewImage(
+                from: data
+            )
         }
     }
 
@@ -186,18 +194,6 @@ struct TodoEditorView: View {
             return todo.attachment?.attachmentID
         }
         return nil
-    }
-
-    private var attachmentImage: CGImage? {
-        let data = draft.attachment?.data ?? existingAttachmentData
-        guard let data,
-              let source = CGImageSourceCreateWithData(
-                data as CFData,
-                nil
-              ) else {
-            return nil
-        }
-        return CGImageSourceCreateImageAtIndex(source, 0, nil)
     }
 
     private func save() {
@@ -323,7 +319,8 @@ struct TodoInspectorView: View {
 private struct TodoAttachmentPreviewView: View {
     @Bindable var store: PixelDoneStore
     let todo: PixelDoneTodo
-    @State private var data: Data?
+    @State private var image: CGImage?
+    private let attachmentService = PixelDoneAttachmentService()
 
     var body: some View {
         Group {
@@ -344,18 +341,10 @@ private struct TodoAttachmentPreviewView: View {
             }
         }
         .task(id: todo.attachment?.attachmentID) {
-            data = await store.attachmentData(for: todo)
+            guard let data = await store.attachmentData(for: todo) else {
+                return
+            }
+            image = await attachmentService.previewImage(from: data)
         }
-    }
-
-    private var image: CGImage? {
-        guard let data,
-              let source = CGImageSourceCreateWithData(
-                data as CFData,
-                nil
-              ) else {
-            return nil
-        }
-        return CGImageSourceCreateImageAtIndex(source, 0, nil)
     }
 }

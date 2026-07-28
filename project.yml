@@ -45,6 +45,7 @@ targets:
         PRODUCT_NAME: PixelDone
         GENERATE_INFOPLIST_FILE: NO
         ENABLE_USER_SCRIPT_SANDBOXING: YES
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         SWIFT_DEFAULT_ACTOR_ISOLATION: MainActor
     dependencies:
       - package: PixelDoneAppleCore
