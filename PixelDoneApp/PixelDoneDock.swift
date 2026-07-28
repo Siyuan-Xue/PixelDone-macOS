@@ -42,7 +42,7 @@ struct PixelDoneDock: View {
         .buttonStyle(.glassProminent)
         .tint(.pixelDoneClay)
         .glassEffectID("dock-add", in: glassNamespace)
-        .accessibilityLabel("Add task")
+        .accessibilityLabel("new_task")
     }
 
     @ViewBuilder
@@ -113,14 +113,14 @@ struct PixelDoneDock: View {
         }
     }
 
-    private func label(for action: DockAction) -> String {
+    private func label(for action: DockAction) -> LocalizedStringKey {
         switch action {
-        case .sort: "Change sort order"
-        case .deadline: "Toggle deadline countdown"
-        case .hideDone: "Hide completed tasks"
-        case .deleteDone: "Move completed tasks to Trash"
-        case .batchDelete: "Toggle quick delete"
-        case .exportMarkdown: "Export Markdown"
+        case .sort: "toggle_sort"
+        case .deadline: "toggle_deadline"
+        case .hideDone: "toggle_done_visibility"
+        case .deleteDone: "clean_done"
+        case .batchDelete: "toggle_quick_delete"
+        case .exportMarkdown: "export_markdown"
         }
     }
 

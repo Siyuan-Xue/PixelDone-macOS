@@ -69,4 +69,13 @@ extension TodoPriority {
         case .low: "LOW"
         }
     }
+
+    var localizedName: LocalizedStringKey {
+        switch self {
+        case .xHigh: "priority_xhigh"
+        case .high: "priority_high"
+        case .medium: "priority_medium"
+        case .low: "priority_low"
+        }
+    }
 }

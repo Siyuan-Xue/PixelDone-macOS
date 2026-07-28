@@ -1,11 +1,17 @@
+import ImageIO
 import PixelDoneDomain
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct TodoEditorView: View {
     @Bindable var store: PixelDoneStore
     let presentation: EditorPresentation
     @Environment(\.dismiss) private var dismiss
     @State private var draft: TodoDraft
+    @State private var isImportingAttachment = false
+    @State private var attachmentMessage: String?
+    @State private var existingAttachmentData: Data?
+    private let attachmentService = PixelDoneAttachmentService()
 
     init(store: PixelDoneStore, presentation: EditorPresentation) {
         self.store = store
@@ -19,7 +25,7 @@ struct TodoEditorView: View {
                 Text(title)
                     .font(.title2.weight(.bold))
                 Spacer()
-                Button("Close", systemImage: "xmark") {
+                Button("close", systemImage: "xmark") {
                     dismiss()
                 }
                 .labelStyle(.iconOnly)
@@ -27,54 +33,87 @@ struct TodoEditorView: View {
             }
 
             Form {
-                Section("Task") {
+                Section("field_title") {
                     TextField(
-                        "What needs to be done?",
+                        "field_title",
                         text: $draft.title,
                         axis: .vertical
                     )
                     .lineLimit(2...5)
 
-                    Picker("Priority", selection: $draft.priority) {
+                    Picker("field_priority", selection: $draft.priority) {
                         ForEach(TodoPriority.allCases, id: \.self) { priority in
-                            Text(priority.displayName).tag(priority)
+                            Text(priority.localizedName).tag(priority)
                         }
                     }
                     .pickerStyle(.segmented)
                 }
 
-                Section("Deadline") {
+                Section("deadline_short") {
                     DatePicker(
-                        "Due",
+                        "field_due",
                         selection: $draft.dueDate,
                         displayedComponents: [.date, .hourAndMinute]
                     )
-                    Picker("Repeat", selection: $draft.reminderRepeat) {
-                        Text("None").tag(ReminderRepeat.none)
-                        Text("Daily").tag(ReminderRepeat.daily)
-                        Text("Weekly").tag(ReminderRepeat.weekly)
+                    Picker("field_repeat", selection: $draft.reminderRepeat) {
+                        Text("repeat_none").tag(ReminderRepeat.none)
+                        Text("repeat_daily").tag(ReminderRepeat.daily)
+                        Text("repeat_weekly").tag(ReminderRepeat.weekly)
                     }
                 }
 
                 Section {
-                    Label(
-                        "Attachments use the native file importer and app-private normalized copies.",
-                        systemImage: "paperclip"
-                    )
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
+                    if let image = attachmentImage {
+                        Image(
+                            decorative: image,
+                            scale: 1,
+                            orientation: .up
+                        )
+                        .resizable()
+                        .scaledToFit()
+                        .frame(maxHeight: 180)
+                        .clipShape(.rect(cornerRadius: 12))
+                        .accessibilityLabel("task_image_preview")
+                    }
+
+                    Button(
+                        "add_task_image",
+                        systemImage: "photo.badge.plus"
+                    ) {
+                        isImportingAttachment = true
+                    }
+
+                    if hasAttachment {
+                        Button(
+                            "remove",
+                            systemImage: "trash",
+                            role: .destructive
+                        ) {
+                            draft.attachment = nil
+                            draft.removeAttachment = true
+                            existingAttachmentData = nil
+                            attachmentMessage =
+                                "Image will be removed on save."
+                        }
+                    }
+
+                    if let attachmentMessage {
+                        Text(attachmentMessage)
+                            .font(.callout)
+                            .foregroundStyle(.secondary)
+                    }
                 }
             }
             .formStyle(.grouped)
 
             HStack {
                 Spacer()
-                Button("Cancel", role: .cancel) {
+                Button("cancel", role: .cancel) {
                     dismiss()
                 }
                 .keyboardShortcut(.cancelAction)
 
-                Button("Save") {
+                Button("save") {
                     save()
                 }
                 .buttonStyle(.glassProminent)
@@ -89,13 +128,76 @@ struct TodoEditorView: View {
         }
         .padding(24)
         .frame(width: 520, height: 520)
+        .fileImporter(
+            isPresented: $isImportingAttachment,
+            allowedContentTypes: [.image],
+            allowsMultipleSelection: false
+        ) { result in
+            Task {
+                do {
+                    let url = try result.get()
+                    guard let selectedURL = url.first else {
+                        return
+                    }
+                    let accessed =
+                        selectedURL.startAccessingSecurityScopedResource()
+                    defer {
+                        if accessed {
+                            selectedURL.stopAccessingSecurityScopedResource()
+                        }
+                    }
+                    let data = try Data(contentsOf: selectedURL)
+                    draft.attachment = try await attachmentService.normalize(
+                        data
+                    )
+                    draft.removeAttachment = false
+                    attachmentMessage =
+                        "Image ready — normalized as JPEG."
+                } catch {
+                    attachmentMessage = error.localizedDescription
+                }
+            }
+        }
+        .task(id: existingAttachmentID) {
+            guard case let .edit(todo) = presentation else { return }
+            existingAttachmentData = await store.attachmentData(for: todo)
+        }
     }
 
-    private var title: String {
+    private var title: LocalizedStringKey {
         switch presentation {
-        case .create: "New task"
-        case .edit: "Edit task"
+        case .create: "new_task"
+        case .edit: "edit_task"
         }
+    }
+
+    private var hasAttachment: Bool {
+        draft.attachment != nil || {
+            if case let .edit(todo) = presentation {
+                return todo.attachment?.deletedAtMillis == nil
+                    && todo.attachment != nil
+            }
+            return false
+        }()
+    }
+
+    private var existingAttachmentID: String? {
+        if case let .edit(todo) = presentation {
+            return todo.attachment?.attachmentID
+        }
+        return nil
+    }
+
+    private var attachmentImage: CGImage? {
+        let data = draft.attachment?.data ?? existingAttachmentData
+        guard let data,
+              let source = CGImageSourceCreateWithData(
+                data as CFData,
+                nil
+              ) else {
+            return nil
+        }
+        return CGImageSourceCreateImageAtIndex(source, 0, nil)
     }
 
     private func save() {
@@ -120,7 +222,7 @@ struct TodoInspectorView: View {
             VStack(alignment: .leading, spacing: 20) {
                 HStack(alignment: .top) {
                     VStack(alignment: .leading, spacing: 6) {
-                        Text("TASK")
+                        Text("field_title")
                             .font(.caption.weight(.black))
                             .foregroundStyle(todo.priority.color)
                         Text(todo.title)
@@ -128,7 +230,7 @@ struct TodoInspectorView: View {
                             .textSelection(.enabled)
                     }
                     Spacer()
-                    Button("Close inspector", systemImage: "xmark") {
+                    Button("close", systemImage: "xmark") {
                         store.inspectedTodoID = nil
                     }
                     .labelStyle(.iconOnly)
@@ -139,13 +241,13 @@ struct TodoInspectorView: View {
 
                 Grid(alignment: .leading, horizontalSpacing: 16, verticalSpacing: 12) {
                     GridRow {
-                        Text("Priority").foregroundStyle(.secondary)
-                        Text(todo.priority.displayName)
+                        Text("field_priority").foregroundStyle(.secondary)
+                        Text(todo.priority.localizedName)
                             .fontWeight(.bold)
                             .foregroundStyle(todo.priority.color)
                     }
                     GridRow {
-                        Text("Due").foregroundStyle(.secondary)
+                        Text("field_due").foregroundStyle(.secondary)
                         Text(
                             Date(
                                 timeIntervalSince1970:
@@ -155,26 +257,31 @@ struct TodoInspectorView: View {
                         )
                     }
                     GridRow {
-                        Text("Repeat").foregroundStyle(.secondary)
-                        Text(todo.reminderRepeat.rawValue.capitalized)
+                        Text("field_repeat").foregroundStyle(.secondary)
+                        Text(repeatName(todo.reminderRepeat))
                     }
                     GridRow {
-                        Text("State").foregroundStyle(.secondary)
-                        Text(todo.completed ? "Completed" : "Active")
+                        Text("field_completed").foregroundStyle(.secondary)
+                        Text(todo.completed ? "status_completed" : "status_active")
                     }
+                }
+
+                if todo.attachment?.deletedAtMillis == nil,
+                   todo.attachment != nil {
+                    TodoAttachmentPreviewView(store: store, todo: todo)
                 }
 
                 Spacer(minLength: 8)
 
                 if store.selectedChecklistID
                     == PixelDoneProductBaseline.trashChecklistID {
-                    Button("Restore", systemImage: "arrow.uturn.backward") {
+                    Button("restore_task", systemImage: "arrow.uturn.backward") {
                         Task { await store.send(.restoreTodo(todo.id)) }
                     }
                     .buttonStyle(.glassProminent)
 
                     Button(
-                        "Delete Forever",
+                        "delete_task",
                         systemImage: "trash.slash",
                         role: .destructive
                     ) {
@@ -183,14 +290,14 @@ struct TodoInspectorView: View {
                         }
                     }
                 } else {
-                    Button("Edit Task", systemImage: "pencil") {
+                    Button("edit_task", systemImage: "pencil") {
                         store.editorPresentation = .edit(todo)
                     }
                     .buttonStyle(.glassProminent)
                     .tint(.pixelDoneClay)
 
                     Button(
-                        "Move to Trash",
+                        "field_trash",
                         systemImage: "trash",
                         role: .destructive
                     ) {
@@ -200,5 +307,55 @@ struct TodoInspectorView: View {
             }
             .padding(20)
         }
+    }
+
+    private func repeatName(
+        _ reminderRepeat: ReminderRepeat
+    ) -> LocalizedStringKey {
+        switch reminderRepeat {
+        case .none: "repeat_none"
+        case .daily: "repeat_daily"
+        case .weekly: "repeat_weekly"
+        }
+    }
+}
+
+private struct TodoAttachmentPreviewView: View {
+    @Bindable var store: PixelDoneStore
+    let todo: PixelDoneTodo
+    @State private var data: Data?
+
+    var body: some View {
+        Group {
+            if let image {
+                Image(
+                    decorative: image,
+                    scale: 1,
+                    orientation: .up
+                )
+                .resizable()
+                .scaledToFit()
+                .frame(maxHeight: 260)
+                .clipShape(.rect(cornerRadius: 12))
+                .accessibilityLabel("task_image_preview")
+            } else {
+                Label("loading_image", systemImage: "photo")
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .task(id: todo.attachment?.attachmentID) {
+            data = await store.attachmentData(for: todo)
+        }
+    }
+
+    private var image: CGImage? {
+        guard let data,
+              let source = CGImageSourceCreateWithData(
+                data as CFData,
+                nil
+              ) else {
+            return nil
+        }
+        return CGImageSourceCreateImageAtIndex(source, 0, nil)
     }
 }

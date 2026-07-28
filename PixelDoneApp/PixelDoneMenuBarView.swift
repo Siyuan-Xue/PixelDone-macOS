@@ -6,11 +6,11 @@ struct PixelDoneMenuBarView: View {
     @Environment(\.openWindow) private var openWindow
 
     var body: some View {
-        LabeledContent("Active tasks", value: "\(activeCount)")
+        LabeledContent("status_active", value: "\(activeCount)")
 
         Divider()
 
-        Button("New Task", systemImage: "plus") {
+        Button("new_task", systemImage: "plus") {
             openMainWindow()
             store.editorPresentation = .create
         }

@@ -29,6 +29,23 @@ enum PixelDonePersistence {
 
 @ModelActor
 actor PixelDoneRepository {
+    func pendingMutationUUID() throws -> String? {
+        try modelContext.fetch(
+            FetchDescriptor<OutboxEntity>(
+                sortBy: [SortDescriptor(\.createdAtMillis)]
+            )
+        ).first?.mutationUUID
+    }
+
+    func acknowledgePendingMutations() throws {
+        for entity in try modelContext.fetch(
+            FetchDescriptor<OutboxEntity>()
+        ) {
+            modelContext.delete(entity)
+        }
+        try modelContext.save()
+    }
+
     func loadOrBootstrap(nowMillis: Int64) throws -> PixelDoneSnapshot {
         if let snapshot = try loadSnapshot() {
             return snapshot

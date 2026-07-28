@@ -13,7 +13,7 @@ struct TodoWorkspaceView: View {
                     Text(emptyDescription)
                 } actions: {
                     if canCreate {
-                        Button("Add a task") {
+                        Button("new_task") {
                             store.editorPresentation = .create
                         }
                         .buttonStyle(.glassProminent)
@@ -45,7 +45,7 @@ struct TodoWorkspaceView: View {
             ToolbarItemGroup(placement: .primaryAction) {
                 Menu {
                     Picker(
-                        "Sort",
+                        "sort",
                         selection: Binding(
                             get: { store.snapshot.settings.sortMode },
                             set: { mode in
@@ -53,17 +53,17 @@ struct TodoWorkspaceView: View {
                             }
                         )
                     ) {
-                        Label("Priority", systemImage: "flag")
+                        Label("field_priority", systemImage: "flag")
                             .tag(TodoSortMode.priority)
-                        Label("Deadline", systemImage: "clock")
+                        Label("deadline_short", systemImage: "clock")
                             .tag(TodoSortMode.time)
                     }
                 } label: {
-                    Label("Sort tasks", systemImage: "arrow.up.arrow.down")
+                    Label("sort", systemImage: "arrow.up.arrow.down")
                 }
 
                 if canCreate {
-                    Button("Add task", systemImage: "plus") {
+                    Button("new_task", systemImage: "plus") {
                         store.editorPresentation = .create
                     }
                     .keyboardShortcut("n")
@@ -84,10 +84,10 @@ struct TodoWorkspaceView: View {
         store.selectedChecklistID != PixelDoneProductBaseline.trashChecklistID
     }
 
-    private var emptyTitle: String {
+    private var emptyTitle: LocalizedStringKey {
         store.selectedChecklistID == PixelDoneProductBaseline.trashChecklistID
-            ? "Trash is empty"
-            : "A clear list"
+            ? "trash_empty"
+            : "new_task"
     }
 
     private var emptySymbol: String {
@@ -96,10 +96,10 @@ struct TodoWorkspaceView: View {
             : "checkmark.square"
     }
 
-    private var emptyDescription: String {
+    private var emptyDescription: LocalizedStringKey {
         store.selectedChecklistID == PixelDoneProductBaseline.trashChecklistID
-            ? "Deleted tasks remain recoverable for exactly 30 days."
-            : "Add the next thing that deserves your attention."
+            ? "trash_retention"
+            : "add_task_to_begin"
     }
 }
 
@@ -141,7 +141,7 @@ private struct TodoRowView: View {
 
                 if !todo.completed {
                     HStack(spacing: 8) {
-                        Text(todo.priority.displayName)
+                        Text(todo.priority.localizedName)
                             .font(.caption2.weight(.black))
                             .foregroundStyle(todo.priority.color)
 
@@ -177,11 +177,11 @@ private struct TodoRowView: View {
             if store.selectedChecklistID
                 == PixelDoneProductBaseline.trashChecklistID {
                 Menu {
-                    Button("Restore", systemImage: "arrow.uturn.backward") {
+                    Button("restore_task", systemImage: "arrow.uturn.backward") {
                         Task { await store.send(.restoreTodo(todo.id)) }
                     }
                     Button(
-                        "Delete forever",
+                        "delete_task",
                         systemImage: "trash.slash",
                         role: .destructive
                     ) {
@@ -221,22 +221,22 @@ private struct TodoRowView: View {
         .contextMenu {
             if store.selectedChecklistID
                 == PixelDoneProductBaseline.trashChecklistID {
-                Button("Restore", systemImage: "arrow.uturn.backward") {
+                Button("restore_task", systemImage: "arrow.uturn.backward") {
                     Task { await store.send(.restoreTodo(todo.id)) }
                 }
                 Button(
-                    "Delete forever",
+                    "delete_task",
                     systemImage: "trash.slash",
                     role: .destructive
                 ) {
                     Task { await store.send(.permanentlyDelete(todo.id)) }
                 }
             } else {
-                Button("Edit", systemImage: "pencil") {
+                Button("edit_task", systemImage: "pencil") {
                     store.editorPresentation = .edit(todo)
                 }
                 Button(
-                    "Move to Trash",
+                    "field_trash",
                     systemImage: "trash",
                     role: .destructive
                 ) {

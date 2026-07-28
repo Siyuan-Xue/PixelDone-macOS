@@ -8,7 +8,7 @@ struct PixelDoneSettingsView: View {
         TabView {
             Form {
                 Picker(
-                    "Theme",
+                    "settings_theme",
                     selection: Binding(
                         get: { store.snapshot.settings.appearanceMode },
                         set: { value in
@@ -16,15 +16,15 @@ struct PixelDoneSettingsView: View {
                         }
                     )
                 ) {
-                    Label("Light", systemImage: "sun.max")
+                    Label("theme_light", systemImage: "sun.max")
                         .tag(AppearanceMode.light)
-                    Label("Dark", systemImage: "moon")
+                    Label("theme_dark", systemImage: "moon")
                         .tag(AppearanceMode.dark)
                 }
                 .pickerStyle(.segmented)
 
                 Picker(
-                    "Language",
+                    "settings_language",
                     selection: Binding(
                         get: { store.snapshot.settings.languageMode },
                         set: { value in
@@ -36,15 +36,35 @@ struct PixelDoneSettingsView: View {
                         Text(languageName(mode)).tag(mode)
                     }
                 }
+
+                Divider()
+
+                LabeledContent(
+                    "settings_permissions",
+                    value: store.notificationStatus
+                )
+                Button(
+                    "update_permissions",
+                    systemImage: "bell.badge"
+                ) {
+                    Task {
+                        await store.requestNotificationAuthorization()
+                    }
+                }
+                Text(
+                    "xhigh_task_due"
+                )
+                .font(.callout)
+                .foregroundStyle(.secondary)
             }
             .formStyle(.grouped)
             .tabItem {
-                Label("General", systemImage: "gear")
+                Label("settings_display", systemImage: "gear")
             }
 
             Form {
                 Picker(
-                    "Add button",
+                    "plus",
                     selection: Binding(
                         get: { store.snapshot.settings.dock.plusPlacement },
                         set: { value in
@@ -54,9 +74,9 @@ struct PixelDoneSettingsView: View {
                         }
                     )
                 ) {
-                    Text("Left").tag(DockPlacement.leftEdge)
-                    Text("Center").tag(DockPlacement.center)
-                    Text("Right").tag(DockPlacement.rightEdge)
+                    Text("left").tag(DockPlacement.leftEdge)
+                    Text("center").tag(DockPlacement.center)
+                    Text("right").tag(DockPlacement.rightEdge)
                 }
                 .pickerStyle(.segmented)
 
@@ -83,39 +103,30 @@ struct PixelDoneSettingsView: View {
                 }
 
                 Text(
-                    "Up to four actions. Selecting a fifth removes the oldest selection."
+                    "settings_dock"
                 )
                 .font(.callout)
                 .foregroundStyle(.secondary)
             }
             .formStyle(.grouped)
             .tabItem {
-                Label("Dock", systemImage: "dock.rectangle")
+                Label("settings_dock", systemImage: "dock.rectangle")
             }
 
             Form {
-                LabeledContent(
-                    "Mode",
-                    value: AppConfiguration.current == nil
-                        ? "Local only"
-                        : "Configured"
-                )
-                LabeledContent("Contract", value: "Supabase 3.2")
-                Text(
-                    "The committed URL and key are intentionally blank. Local-only mode remains fully functional until Config/Local.xcconfig is filled."
-                )
-                .font(.callout)
-                .foregroundStyle(.secondary)
+                LabeledContent("cloud", value: store.cloud.status.label)
+                LabeledContent("cloud_version", value: "Supabase 3.2")
+                CloudAccountView(store: store)
 
                 Divider()
 
-                LabeledContent("Apple baseline", value: "macOS 26.5")
-                LabeledContent("Product baseline", value: "Android 3.3.6")
-                LabeledContent("UI", value: "SwiftUI + Liquid Glass")
+                LabeledContent("app", value: "macOS 26.5")
+                LabeledContent("stable", value: "Android 3.3.6")
+                LabeledContent("preview", value: "SwiftUI + Liquid Glass")
             }
             .formStyle(.grouped)
             .tabItem {
-                Label("Sync & About", systemImage: "arrow.triangle.2.circlepath")
+                Label("settings_about", systemImage: "arrow.triangle.2.circlepath")
             }
         }
         .padding(16)
@@ -125,26 +136,26 @@ struct PixelDoneSettingsView: View {
         }
     }
 
-    private func languageName(_ mode: LanguageMode) -> String {
+    private func languageName(_ mode: LanguageMode) -> LocalizedStringKey {
         switch mode {
-        case .system: "System"
-        case .english: "English"
-        case .simplifiedChinese: "简体中文"
-        case .arabic: "العربية"
-        case .french: "Français"
-        case .russian: "Русский"
-        case .spanish: "Español"
+        case .system: "language_system"
+        case .english: "language_english"
+        case .simplifiedChinese: "language_chinese"
+        case .arabic: "language_arabic"
+        case .french: "language_french"
+        case .russian: "language_russian"
+        case .spanish: "language_spanish"
         }
     }
 
-    private func actionName(_ action: DockAction) -> String {
+    private func actionName(_ action: DockAction) -> LocalizedStringKey {
         switch action {
-        case .sort: "Sort"
-        case .deadline: "Deadline countdown"
-        case .hideDone: "Hide completed"
-        case .deleteDone: "Clean completed"
-        case .batchDelete: "Quick delete"
-        case .exportMarkdown: "Export Markdown"
+        case .sort: "sort"
+        case .deadline: "toggle_deadline"
+        case .hideDone: "hide_done"
+        case .deleteDone: "clean_done"
+        case .batchDelete: "quick_delete"
+        case .exportMarkdown: "export_markdown"
         }
     }
 }

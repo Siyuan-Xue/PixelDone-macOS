@@ -6,40 +6,40 @@ struct PixelDoneCommands: Commands {
 
     var body: some Commands {
         CommandGroup(replacing: .newItem) {
-            Button("New Task") {
+            Button("new_task") {
                 store.editorPresentation = .create
             }
             .keyboardShortcut("n")
 
-            Button("New Checklist") {
+            Button("new_list") {
                 store.notice =
                     "Use the New Checklist button in the sidebar to name it."
             }
             .keyboardShortcut("n", modifiers: [.command, .shift])
         }
 
-        CommandMenu("Tasks") {
-            Button("Sort by Priority") {
+        CommandMenu("app") {
+            Button("field_priority") {
                 Task { await store.send(.setSortMode(.priority)) }
             }
             .keyboardShortcut("1", modifiers: [.command, .option])
 
-            Button("Sort by Deadline") {
+            Button("deadline_short") {
                 Task { await store.send(.setSortMode(.time)) }
             }
             .keyboardShortcut("2", modifiers: [.command, .option])
 
             Divider()
 
-            Button("Toggle Deadline Countdown") {
+            Button("toggle_deadline") {
                 Task { await store.send(.toggleDeadline) }
             }
 
-            Button("Hide Completed") {
+            Button("hide_done") {
                 Task { await store.send(.toggleHideCompleted) }
             }
 
-            Button("Clean Completed") {
+            Button("clean_done") {
                 Task { await store.send(.cleanCompleted) }
             }
         }

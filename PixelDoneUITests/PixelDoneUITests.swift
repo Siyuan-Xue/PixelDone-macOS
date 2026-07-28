@@ -19,7 +19,7 @@ final class PixelDoneUITests: XCTestCase {
         XCTAssertTrue(inspect.waitForExistence(timeout: 4))
         inspect.click()
 
-        XCTAssertTrue(app.staticTexts["TASK"].waitForExistence(timeout: 4))
-        XCTAssertTrue(app.buttons["Edit Task"].exists)
+        XCTAssertTrue(app.staticTexts["Title"].waitForExistence(timeout: 4))
+        XCTAssertTrue(app.buttons["Edit task"].exists)
     }
 }

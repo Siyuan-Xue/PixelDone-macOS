@@ -9,6 +9,8 @@ struct TodoDraft: Equatable, Sendable {
     var priority: TodoPriority = .medium
     var dueDate = Date().addingTimeInterval(86_400)
     var reminderRepeat: ReminderRepeat = .none
+    var attachment: NormalizedAttachment?
+    var removeAttachment = false
 }
 
 enum EditorPresentation: Identifiable, Equatable {
@@ -49,8 +51,11 @@ enum PixelDoneIntent: Sendable {
 @Observable
 final class PixelDoneStore {
     private let repository: PixelDoneRepository
+    private let notificationService: PixelDoneNotificationService?
+    private let attachmentService: PixelDoneAttachmentService?
     private var completionHoldTask: Task<Void, Never>?
     private var heldTodoOrder: [String] = []
+    let cloud: CloudCoordinator
 
     var snapshot = PixelDoneSnapshot(checklists: [], todos: [])
     var isLoaded = false
@@ -60,9 +65,21 @@ final class PixelDoneStore {
     var highlightedTodoID: String?
     var notice: String?
     var errorMessage: String?
+    var notificationStatus = "Not requested"
 
-    init(repository: PixelDoneRepository) {
+    init(
+        repository: PixelDoneRepository,
+        notificationService: PixelDoneNotificationService? = nil,
+        attachmentService: PixelDoneAttachmentService? = nil,
+        cloudCoordinator: CloudCoordinator? = nil
+    ) {
         self.repository = repository
+        self.notificationService = notificationService
+        self.attachmentService = attachmentService
+        cloud = cloudCoordinator ?? CloudCoordinator(
+            configuration: nil,
+            bundleIdentifier: "com.milesxue.pixeldone.macos.tests"
+        )
     }
 
     var selectedChecklistID: String {
@@ -107,6 +124,24 @@ final class PixelDoneStore {
         snapshot.settings.appearanceMode == .dark ? .dark : .light
     }
 
+    var appLocale: Locale {
+        switch snapshot.settings.languageMode {
+        case .system: .autoupdatingCurrent
+        case .english: Locale(identifier: "en")
+        case .simplifiedChinese: Locale(identifier: "zh-Hans")
+        case .arabic: Locale(identifier: "ar")
+        case .french: Locale(identifier: "fr")
+        case .russian: Locale(identifier: "ru")
+        case .spanish: Locale(identifier: "es")
+        }
+    }
+
+    var appLayoutDirection: LayoutDirection {
+        snapshot.settings.languageMode == .arabic
+            ? .rightToLeft
+            : .leftToRight
+    }
+
     func load() async {
         guard !isLoaded else {
             return
@@ -143,6 +178,15 @@ final class PixelDoneStore {
                 )
             }
             snapshot = loaded
+            cloud.setInvalidationHandler { [weak self] in
+                await self?.synchronizeCloud()
+            }
+            await cloud.restoreSession()
+            if let notificationService {
+                await notificationService.configureCategories()
+                await notificationService.synchronize(todos: loaded.todos)
+                await refreshNotificationStatus()
+            }
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -230,6 +274,14 @@ final class PixelDoneStore {
                 return
             }
             let id = UUID().uuidString.lowercased()
+            let attachment = await makeAttachment(
+                from: draft.attachment,
+                todoID: id,
+                nowMillis: now
+            )
+            if draft.attachment != nil && attachment == nil {
+                return
+            }
             proposed.todos.append(
                 PixelDoneTodo(
                     id: id,
@@ -240,7 +292,8 @@ final class PixelDoneStore {
                     dueAtMillis: Self.millis(from: draft.dueDate),
                     createdAtMillis: now,
                     updatedAtMillis: now,
-                    reminderRepeat: draft.reminderRepeat
+                    reminderRepeat: draft.reminderRepeat,
+                    attachment: attachment
                 )
             )
             reason = "create-todo"
@@ -263,6 +316,23 @@ final class PixelDoneStore {
             )
             proposed.todos[index].reminderRepeat = draft.reminderRepeat
             proposed.todos[index].updatedAtMillis = now
+            if let normalized = draft.attachment {
+                guard let attachment = await makeAttachment(
+                    from: normalized,
+                    todoID: id,
+                    nowMillis: now
+                ) else {
+                    return
+                }
+                proposed.todos[index].attachment = attachment
+            } else if draft.removeAttachment,
+                      proposed.todos[index].attachment != nil {
+                proposed.todos[index].attachment = PixelDoneAttachment(
+                    todoLocalID: id,
+                    updatedAtMillis: now,
+                    deletedAtMillis: now
+                )
+            }
             reason = "update-todo"
             nextHighlight = id
 
@@ -392,6 +462,10 @@ final class PixelDoneStore {
         do {
             try await repository.persist(proposed, reason: reason)
             snapshot = proposed
+            if cloud.isConfigured {
+                cloud.needsSync = true
+            }
+            await notificationService?.synchronize(todos: proposed.todos)
             highlightedTodoID = nextHighlight
             if reason == "complete-todo" || reason == "reactivate-todo" {
                 completionHoldTask?.cancel()
@@ -407,6 +481,144 @@ final class PixelDoneStore {
             }
         } catch {
             errorMessage = error.localizedDescription
+        }
+    }
+
+    private func makeAttachment(
+        from normalized: NormalizedAttachment?,
+        todoID: String,
+        nowMillis: Int64
+    ) async -> PixelDoneAttachment? {
+        guard let normalized else {
+            return nil
+        }
+        guard let attachmentService else {
+            errorMessage = AttachmentError.normalizationFailed
+                .localizedDescription
+            return nil
+        }
+        let attachmentID = UUID().uuidString.lowercased()
+        do {
+            _ = try await attachmentService.storeLocally(
+                normalized,
+                attachmentID: attachmentID
+            )
+            return PixelDoneAttachment(
+                todoLocalID: todoID,
+                attachmentID: attachmentID,
+                contentSHA256: normalized.contentSHA256,
+                contentType: normalized.contentType,
+                byteSize: normalized.byteSize,
+                updatedAtMillis: nowMillis
+            )
+        } catch {
+            errorMessage = error.localizedDescription
+            return nil
+        }
+    }
+
+    func requestNotificationAuthorization() async {
+        guard let notificationService else {
+            notificationStatus = "Unavailable"
+            return
+        }
+        do {
+            _ = try await notificationService.requestAuthorization()
+            await refreshNotificationStatus()
+            await notificationService.synchronize(todos: snapshot.todos)
+        } catch {
+            notificationStatus = "Unavailable"
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    func snoozeNotification(todoID: String) async {
+        guard let todo = snapshot.todos.first(
+            where: { $0.id == todoID }
+        ), let notificationService else {
+            return
+        }
+        do {
+            try await notificationService.snooze(todo: todo)
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    func synchronizeCloud() async {
+        guard !isWorking else { return }
+        isWorking = true
+        defer { isWorking = false }
+        do {
+            let mutationUUID = try await repository.pendingMutationUUID()
+            guard let merged = await cloud.synchronize(
+                snapshot: snapshot,
+                mutationUUID: mutationUUID
+            ) else {
+                return
+            }
+            try await repository.persist(
+                merged,
+                reason: "remote-sync",
+                enqueueMutation: false
+            )
+            try await repository.acknowledgePendingMutations()
+            snapshot = merged
+            await notificationService?.synchronize(todos: merged.todos)
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    func resolveCloudConflicts(keepingDevice: Bool) async {
+        guard !isWorking else { return }
+        isWorking = true
+        defer { isWorking = false }
+        guard let resolved = await cloud.resolveConflicts(
+            keepingDevice: keepingDevice,
+            localSnapshot: snapshot
+        ) else {
+            return
+        }
+        do {
+            try await repository.persist(
+                resolved,
+                reason: "resolve-conflicts",
+                enqueueMutation: false
+            )
+            try await repository.acknowledgePendingMutations()
+            snapshot = resolved
+            await notificationService?.synchronize(todos: resolved.todos)
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    func attachmentData(for todo: PixelDoneTodo) async -> Data? {
+        guard let attachmentService,
+              let attachmentID = todo.attachment?.attachmentID,
+              todo.attachment?.deletedAtMillis == nil else {
+            return nil
+        }
+        return try? await attachmentService.loadLocalData(
+            attachmentID: attachmentID
+        )
+    }
+
+    private func refreshNotificationStatus() async {
+        guard let notificationService else {
+            notificationStatus = "Unavailable"
+            return
+        }
+        switch await notificationService.authorizationState() {
+        case .notDetermined:
+            notificationStatus = "Not requested"
+        case .denied:
+            notificationStatus = "Denied"
+        case .authorized:
+            notificationStatus = "Authorized"
+        case .provisional:
+            notificationStatus = "Provisional"
         }
     }
 

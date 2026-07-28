@@ -46,31 +46,31 @@ struct PixelDoneRootView: View {
         .sheet(item: $store.editorPresentation) { presentation in
             TodoEditorView(store: store, presentation: presentation)
         }
-        .alert("New checklist", isPresented: $isAddingChecklist) {
-            TextField("Name", text: $newChecklistName)
-            Button("Cancel", role: .cancel) {
+        .alert("new_list", isPresented: $isAddingChecklist) {
+            TextField("name", text: $newChecklistName)
+            Button("cancel", role: .cancel) {
                 newChecklistName = ""
             }
-            Button("Create") {
+            Button("add") {
                 let name = newChecklistName
                 newChecklistName = ""
                 Task { await store.send(.createChecklist(name)) }
             }
         } message: {
-            Text("Give this checklist a short, recognizable name.")
+            Text("list_name")
         }
         .alert(
-            "Rename checklist",
+            "edit_list",
             isPresented: Binding(
                 get: { checklistToRename != nil },
                 set: { if !$0 { checklistToRename = nil } }
             )
         ) {
-            TextField("Name", text: $renamedChecklistName)
-            Button("Cancel", role: .cancel) {
+            TextField("name", text: $renamedChecklistName)
+            Button("cancel", role: .cancel) {
                 checklistToRename = nil
             }
-            Button("Rename") {
+            Button("save") {
                 guard let checklist = checklistToRename else { return }
                 let name = renamedChecklistName
                 checklistToRename = nil
@@ -82,17 +82,17 @@ struct PixelDoneRootView: View {
             }
         }
         .alert(
-            "Delete checklist?",
+            "delete_list_title",
             isPresented: Binding(
                 get: { checklistToDelete != nil },
                 set: { if !$0 { checklistToDelete = nil } }
             ),
             presenting: checklistToDelete
         ) { checklist in
-            Button("Cancel", role: .cancel) {
+            Button("cancel", role: .cancel) {
                 checklistToDelete = nil
             }
-            Button("Delete", role: .destructive) {
+            Button("delete", role: .destructive) {
                 checklistToDelete = nil
                 Task { await store.send(.deleteChecklist(checklist.id)) }
             }
@@ -138,12 +138,12 @@ struct PixelDoneRootView: View {
                         symbol: "square.stack.3d.up"
                     )
                     .contextMenu {
-                        Button("Rename", systemImage: "pencil") {
+                        Button("edit_list", systemImage: "pencil") {
                             renamedChecklistName = checklist.name
                             checklistToRename = checklist
                         }
                         Button(
-                            "Delete",
+                            "delete",
                             systemImage: "trash",
                             role: .destructive
                         ) {
@@ -171,14 +171,14 @@ struct PixelDoneRootView: View {
                     Text(syncMode)
                         .foregroundStyle(.secondary)
                 } label: {
-                    Label("Sync", systemImage: "arrow.triangle.2.circlepath")
+                    Label("sync", systemImage: "arrow.triangle.2.circlepath")
                 }
             }
         }
         .navigationTitle("PixelDone")
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
-                Button("New checklist", systemImage: "folder.badge.plus") {
+                Button("new_list", systemImage: "folder.badge.plus") {
                     isAddingChecklist = true
                 }
                 .keyboardShortcut("n", modifiers: [.command, .shift])
@@ -209,7 +209,7 @@ struct PixelDoneRootView: View {
     }
 
     private var syncMode: String {
-        AppConfiguration.current == nil ? "Local only" : "Configured"
+        store.cloud.status.label
     }
 }
 
@@ -224,11 +224,11 @@ private struct SettingsShortcutView: View {
 
     var body: some View {
         ContentUnavailableView {
-            Label("PixelDone Settings", systemImage: "gearshape")
+            Label("settings_about", systemImage: "gearshape")
         } description: {
-            Text("Settings use a dedicated native macOS window.")
+            Text("settings_display")
         } actions: {
-            Button("Open Settings") {
+            Button("settings_about") {
                 openSettings()
             }
             .buttonStyle(.glassProminent)
