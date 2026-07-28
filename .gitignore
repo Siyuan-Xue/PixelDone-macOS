@@ -1,0 +1,11 @@
+.DS_Store
+.build/
+DerivedData/
+build/
+dist/
+*.xcuserstate
+xcuserdata/
+*.xccheckout
+.swiftpm/
+Config/Local.xcconfig
+*.provisionprofile

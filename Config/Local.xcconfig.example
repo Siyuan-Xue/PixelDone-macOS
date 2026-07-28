@@ -1,0 +1,4 @@
+// Copy this file to Local.xcconfig and keep the copy untracked.
+// HTTP/ws transport is an accepted risk and is not confidential or tamper-resistant.
+PIXELDONE_SUPABASE_URL = http:/$()/SERVER_IP:8000
+PIXELDONE_SUPABASE_PUBLISHABLE_KEY = YOUR_PUBLISHABLE_OR_LEGACY_ANON_KEY
